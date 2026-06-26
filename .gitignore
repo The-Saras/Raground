@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Package Managers
+.pnpm-store/
+
+# Build
+dist/
+build/
+coverage/
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Prisma
+packages/database/generated/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-data/
+
+# Turbo (if you ever add it)
+.turbo/
+
+# Misc
+*.tsbuildinfo

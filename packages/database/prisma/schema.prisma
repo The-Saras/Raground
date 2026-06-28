@@ -12,34 +12,74 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 enum WorkspaceStatus {
-  CREATING
+  ACTIVE
+  DISABLED
+}
+
+enum JobStatus {
+  QUEUED
   PROCESSING
-  READY
+  COMPLETED
   FAILED
 }
 
+enum JobType {
+  INGEST
+}
+
 model User {
-  id           String      @id @default(cuid())
-  email        String      @unique
+  id           String   @id @default(cuid())
+  email        String   @unique
   passwordHash String
 
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-
   workspaces   Workspace[]
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Workspace {
-  id          String           @id @default(cuid())
+  id          String   @id @default(cuid())
 
   name        String
   description String?
 
-  status      WorkspaceStatus  @default(CREATING)
+  status      WorkspaceStatus @default(ACTIVE)
 
   ownerId     String
-  owner       User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner       User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  dataSources DataSource[]
+  jobs        Job[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model DataSource {
+  id          String   @id @default(cuid())
+
+  title       String?
+  content     String
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Job {
+  id          String   @id @default(cuid())
+
+  type        JobType
+  status      JobStatus @default(QUEUED)
+
+  error       String?
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

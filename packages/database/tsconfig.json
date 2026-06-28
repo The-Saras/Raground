@@ -4,7 +4,10 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": ".",
-    "types":["node"]
+    "types":["node"],
+    "paths": {
+      "@/generated/*": ["./generated/prisma/*"]
+    }
   },
 
   "include": [

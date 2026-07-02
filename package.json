@@ -23,8 +23,12 @@
   ],
   "homepage": "https://github.com/The-Saras/Raground#readme",
   "devDependencies": {
-    "@types/node": "^26.0.1",
-    "tsx": "^4.22.4",
+    "@types/node": "^26.1.0",
+    "tsx": "^4.22.5",
     "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "bullmq": "^5.79.2",
+    "ioredis": "^5.11.1"
   }
 }

@@ -1,0 +1,9 @@
+{
+    "name": "@raground/worker",
+    "private": true,
+    "scripts": {
+        "dev": "tsx watch src/server.ts",
+        "build": "tsc",
+        "start": "node dist/server.js"
+    }
+}

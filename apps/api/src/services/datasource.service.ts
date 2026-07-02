@@ -2,6 +2,7 @@ import { PrismaClient, DataSource, JobType, Prisma } from "@prisma/client";
 
 import { IDataSourceService } from "../interfaces/datasource.service";
 import { CreateDataSourceDto } from "../modules/datasoruce/datasource.types";
+import ingestionQueue from "../queue/ingestion.queue";
 
 const prisma = new PrismaClient();
 
@@ -29,12 +30,15 @@ export class DataSourceService implements IDataSourceService {
                 },
             });
 
-            await tx.job.create({
+            const job = await tx.job.create({
                 data: {
                     workspaceId,
                     dataSourceId: dataSource.id,
                     type: JobType.INGEST,
                 },
+            });
+            await ingestionQueue.add("ingest", {
+                jobId: job.id,
             });
 
             return dataSource;

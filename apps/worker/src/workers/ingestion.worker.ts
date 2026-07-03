@@ -17,6 +17,12 @@ export const ingestionWorker = new Worker(
                 dataSource: true
             }
         })
+
+        if (!ingestJob || !ingestJob.dataSource) {
+            return;
+        }
+
+
     },
     {
         connection: redisConfig,

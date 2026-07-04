@@ -69,6 +69,7 @@ model DataSource {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   jobs      Job[]
+  chunks    Chunk[]
 }
 
 model Job {
@@ -81,6 +82,20 @@ model Job {
 
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  dataSourceId String
+  dataSource   DataSource @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Chunk {
+  id String @id @default(cuid())
+
+  content String
+
+  chunkIndex Int
 
   dataSourceId String
   dataSource   DataSource @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)

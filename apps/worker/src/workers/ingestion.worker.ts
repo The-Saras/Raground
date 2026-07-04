@@ -9,7 +9,7 @@ export const ingestionWorker = new Worker(
     async (job) => {
         console.log("Received Job");
         console.log(job.data.jobId);
-        const ingestJob = await prisma.job.findUnique({
+        const ingestionJob = await prisma.job.findUnique({
             where: {
                 id: job.data.jobId,
             },
@@ -18,9 +18,11 @@ export const ingestionWorker = new Worker(
             }
         })
 
-        if (!ingestJob || !ingestJob.dataSource) {
+        if (!ingestionJob || !ingestionJob.dataSource) {
             return;
         }
+
+        console.log(ingestionJob.dataSource.content);
 
 
     },

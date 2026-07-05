@@ -1,8 +1,11 @@
 import { Worker } from "bullmq";
 import { PrismaClient } from "@prisma/client";
 import { redisConfig } from "../config/redis";
+import { RecursiveChunkStrategy } from "@raground/ai";
 
 const prisma = new PrismaClient();
+
+const chunkingStrategy = new RecursiveChunkStrategy();
 
 export const ingestionWorker = new Worker(
     "ingestion",
@@ -22,7 +25,17 @@ export const ingestionWorker = new Worker(
             return;
         }
 
-        console.log(ingestionJob.dataSource.content);
+        const chunks = chunkingStrategy.chunk(ingestionJob.dataSource.content);
+
+        console.log(chunks);
+        await prisma.chunk.createMany({
+            data: chunks.map((content, index) => ({
+                content,
+                chunkIndex: index,
+                dataSourceId: ingestionJob.dataSource.id,
+            })),
+        });
+
 
 
     },

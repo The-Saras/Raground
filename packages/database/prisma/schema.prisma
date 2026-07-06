@@ -100,6 +100,22 @@ model Chunk {
   dataSourceId String
   dataSource   DataSource @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
 
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  embedding Embedding?
+}
+
+model Embedding {
+  id String @id @default(cuid())
+
+  provider String
+  model    String
+
+  vector Unsupported("vector")
+
+  chunkId String @unique
+  chunk   Chunk  @relation(fields: [chunkId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

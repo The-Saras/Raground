@@ -2,10 +2,12 @@ import { Worker } from "bullmq";
 import { PrismaClient } from "@prisma/client";
 import { redisConfig } from "../config/redis";
 import { RecursiveChunkStrategy } from "@raground/ai";
+import { HuggingFaceEmbeddingProvider } from "@raground/ai";
 
 const prisma = new PrismaClient();
 
 const chunkingStrategy = new RecursiveChunkStrategy();
+const embedings_provider = new HuggingFaceEmbeddingProvider();
 
 export const ingestionWorker = new Worker(
     "ingestion",
@@ -35,6 +37,16 @@ export const ingestionWorker = new Worker(
                 dataSourceId: ingestionJob.dataSource.id,
             })),
         });
+
+        try {
+            for (const chunk of chunks) {
+                const embedding = await embedings_provider.embed(chunk);
+
+                console.log("Embedding Length:", embedding.length);
+            }
+        } catch (error) {
+            console.error(error);
+        }
 
 
 

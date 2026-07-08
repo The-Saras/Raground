@@ -1,4 +1,5 @@
 import { IEmbeddingProvider } from "../interfaces/embeding.provider";
+import "dotenv/config";
 
 export class HuggingFaceEmbeddingProvider implements IEmbeddingProvider {
     async embed(text: string): Promise<number[]> {

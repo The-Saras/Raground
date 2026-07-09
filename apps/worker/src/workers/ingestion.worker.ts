@@ -1,3 +1,5 @@
+import dotenv from "dotenv";
+
 import { Worker } from "bullmq";
 import { PrismaClient } from "@prisma/client";
 import { redisConfig } from "../config/redis";
@@ -39,6 +41,8 @@ export const ingestionWorker = new Worker(
         });
 
         try {
+            console.log(process.env.HF_TOKEN?.length);
+            console.log("Starting embedding generation...");
             for (const chunk of chunks) {
                 const embedding = await embedings_provider.embed(chunk);
 

@@ -1,12 +1,13 @@
 import dotenv from "dotenv";
 
 import { Worker } from "bullmq";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@raground/database";
+//import { PrismaClient } from "@prisma/client";
 import { redisConfig } from "../config/redis";
 import { RecursiveChunkStrategy } from "@raground/ai";
 import { HuggingFaceEmbeddingProvider } from "@raground/ai";
 
-const prisma = new PrismaClient();
+//const prisma = new PrismaClient();
 
 const chunkingStrategy = new RecursiveChunkStrategy();
 const embedings_provider = new HuggingFaceEmbeddingProvider();
@@ -32,27 +33,39 @@ export const ingestionWorker = new Worker(
         const chunks = chunkingStrategy.chunk(ingestionJob.dataSource.content);
 
         console.log(chunks);
-        await prisma.chunk.createMany({
-            data: chunks.map((content, index) => ({
-                content,
-                chunkIndex: index,
-                dataSourceId: ingestionJob.dataSource.id,
-            })),
-        });
+        for (const [index, content] of chunks.entries()) {
 
-        try {
-            console.log(process.env.HF_TOKEN?.length);
-            console.log("Starting embedding generation...");
-            for (const chunk of chunks) {
-                const embedding = await embedings_provider.embed(chunk);
+            const createdChunk = await prisma.chunk.create({
+                data: {
+                    content,
+                    chunkIndex: index,
+                    dataSourceId: ingestionJob.dataSource.id,
+                },
+            });
 
-                console.log("Embedding Length:", embedding.length);
-            }
-        } catch (error) {
-            console.error(error);
+
+            const embedding = await embedings_provider.embed(content);
+
+            console.log(
+                `Chunk ${index} -> Embedding Length: ${embedding.length}`
+            );
+
+            // Store Embedding
+            await prisma.$executeRaw`
+    INSERT INTO "Embedding"
+        ("id", "provider", "model", "vector", "chunkId", "createdAt", "updatedAt")
+    VALUES
+        (
+            ${crypto.randomUUID()},
+            'huggingface',
+            'sentence-transformers/all-MiniLM-L6-v2',
+            ${embedding}::vector,
+            ${createdChunk.id},
+            NOW(),
+            NOW()
+        )
+`;
         }
-
-
 
     },
     {

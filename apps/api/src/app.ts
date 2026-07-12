@@ -1,3 +1,12 @@
+import dotenv from "dotenv";
+import path from "path";
+
+dotenv.config({
+    path: path.resolve(process.cwd(), "../../.env"),
+});
+
+console.log(process.env.HF_TOKEN);
+
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";

@@ -27,44 +27,71 @@ export const ingestionWorker = new Worker(
         })
 
         if (!ingestionJob || !ingestionJob.dataSource) {
-            return;
+            throw new Error("Job or DataSource not found");
         }
 
-        const chunks = chunkingStrategy.chunk(ingestionJob.dataSource.content);
+        await prisma.job.update({
+            where: { id: job.data.jobId },
+            data: {
+                status: "PROCESSING"
+            }
+        })
 
-        console.log(chunks);
-        for (const [index, content] of chunks.entries()) {
+        try {
+            const chunks = chunkingStrategy.chunk(ingestionJob.dataSource.content);
 
-            const createdChunk = await prisma.chunk.create({
+            console.log(chunks);
+            for (const [index, content] of chunks.entries()) {
+
+                const createdChunk = await prisma.chunk.create({
+                    data: {
+                        content,
+                        chunkIndex: index,
+                        dataSourceId: ingestionJob.dataSource.id,
+                    },
+                });
+
+
+                const embedding = await embedings_provider.embed(content);
+
+                console.log(
+                    `Chunk ${index} -> Embedding Length: ${embedding.length}`
+                );
+
+                // Store Embedding
+                await prisma.$executeRaw`
+                INSERT INTO "Embedding"
+                ("id", "provider", "model", "vector", "chunkId", "createdAt", "updatedAt")
+                VALUES
+                (
+                ${crypto.randomUUID()},
+                'huggingface',
+                'sentence-transformers/all-MiniLM-L6-v2',
+                ${embedding}::vector,
+                ${createdChunk.id},
+                NOW(),
+                NOW()
+        )`;
+            }
+            await prisma.job.update({
+                where: { id: ingestionJob.id },
                 data: {
-                    content,
-                    chunkIndex: index,
-                    dataSourceId: ingestionJob.dataSource.id,
+                    status: "COMPLETED"
+                }
+            })
+
+
+        } catch (error) {
+            await prisma.job.update({
+                where: {
+                    id: ingestionJob.id
                 },
+                data: {
+                    status: "FAILED",
+                    error: error instanceof Error ? error.message : "Unknown error"
+                }
             });
-
-
-            const embedding = await embedings_provider.embed(content);
-
-            console.log(
-                `Chunk ${index} -> Embedding Length: ${embedding.length}`
-            );
-
-            // Store Embedding
-            await prisma.$executeRaw`
-    INSERT INTO "Embedding"
-        ("id", "provider", "model", "vector", "chunkId", "createdAt", "updatedAt")
-    VALUES
-        (
-            ${crypto.randomUUID()},
-            'huggingface',
-            'sentence-transformers/all-MiniLM-L6-v2',
-            ${embedding}::vector,
-            ${createdChunk.id},
-            NOW(),
-            NOW()
-        )
-`;
+            throw error;
         }
 
     },

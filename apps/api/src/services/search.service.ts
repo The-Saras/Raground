@@ -6,7 +6,7 @@ import { HuggingFaceEmbeddingProvider } from "@raground/ai";
 const emb = new HuggingFaceEmbeddingProvider();
 
 export class SearchService implements ISearchService {
-    async search(workspaceId: string, query: string): Promise<SearchResult[]> {
+    async search(workspaceId: string, query: string, limit?: number): Promise<SearchResult[]> {
         const queryChunks = await emb.embed(query);
 
         const embeddingString = `[${queryChunks.join(",")}]`;
@@ -22,7 +22,7 @@ export class SearchService implements ISearchService {
                 ON c."dataSourceId" = d.id
             WHERE d."workspaceId" = ${workspaceId}
             ORDER BY e.vector <=> ${embeddingString}::vector
-            LIMIT 5;
+            LIMIT ${limit ?? 5};;
         `;
         return results;
 

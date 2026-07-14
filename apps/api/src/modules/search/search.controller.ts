@@ -18,7 +18,7 @@ export class SearchController {
 
         const { query } = result.data;
 
-        const results = await searchService.search(workspaceId, query);
+        const results = await searchService.search(workspaceId, query, 5);
 
         res.status(200).json(results);
     }

@@ -1,6 +1,7 @@
 import { PrismaClient, Prisma, Chunk } from "@prisma/client";
 import { IChunkStrategy } from "../interfaces/chunking.strategy";
 
+
 export class RecursiveChunkStrategy implements IChunkStrategy {
     private readonly chunkSize = 500;
     private readonly chunkOverlap = 100;

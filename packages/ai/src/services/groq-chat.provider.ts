@@ -1,4 +1,5 @@
 import { IChatProvider } from "../interfaces/chat.providers";
+import "dotenv/config";
 
 export class GroqChatProvider implements IChatProvider {
     async generateResponse(prompt: string): Promise<string> {

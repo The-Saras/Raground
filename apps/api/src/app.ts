@@ -6,6 +6,7 @@ dotenv.config({
 });
 
 console.log(process.env.HF_TOKEN);
+console.log(process.env.GROQ_KEY);
 
 import express from "express";
 import cors from "cors";

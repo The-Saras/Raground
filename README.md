@@ -90,7 +90,7 @@ ragground/
 Clone the repository.
 
 ```bash
-git clone https://github.com/yourusername/ragground.git
+git clone https://github.com/The-Saras/ragground.git
 
 cd ragground
 ```

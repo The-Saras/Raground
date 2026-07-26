@@ -6,6 +6,8 @@ import { useAuth } from "../context/AuthContext";
 declare global {
   interface Window {
     google?: any;
+    googleInitialized?: boolean;
+    googleLoginCallback?: (response: any) => void;
   }
 }
 
@@ -16,6 +18,12 @@ export default function GoogleLoginButton() {
   const [showMockPanel, setShowMockPanel] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const buttonRef = useRef<HTMLDivElement>(null);
+  const callbackRef = useRef(loginWithGoogleToken);
+
+  // Keep callbackRef up to date with the latest loginWithGoogleToken reference
+  useEffect(() => {
+    callbackRef.current = loginWithGoogleToken;
+  }, [loginWithGoogleToken]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -48,19 +56,27 @@ export default function GoogleLoginButton() {
     }
 
     try {
-      window.google.accounts.id.initialize({
-        client_id: clientId,
-        callback: async (response: any) => {
-          if (response.credential) {
-            try {
-              setLocalError(null);
-              await loginWithGoogleToken(response.credential);
-            } catch (err: any) {
-              setLocalError(err.message || "Failed to log in with Google");
+      if (!window.googleInitialized) {
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: async (response: any) => {
+            if (response.credential && window.googleLoginCallback) {
+              window.googleLoginCallback(response);
             }
-          }
-        },
-      });
+          },
+        });
+        window.googleInitialized = true;
+      }
+
+      // Update the dynamic callback to call the latest loginWithGoogleToken ref
+      window.googleLoginCallback = async (response: any) => {
+        try {
+          setLocalError(null);
+          await callbackRef.current(response.credential);
+        } catch (err: any) {
+          setLocalError(err.message || "Failed to log in with Google");
+        }
+      };
 
       window.google.accounts.id.renderButton(buttonRef.current, {
         type: "standard",
@@ -68,13 +84,13 @@ export default function GoogleLoginButton() {
         size: "large",
         text: "signin_with",
         shape: "rectangular",
-        width: "100%",
+        width: 320,
       });
     } catch (err: any) {
       console.error("Google script initialization failed", err);
       setLocalError("Failed to initialize Google login button.");
     }
-  }, [scriptLoaded, loginWithGoogleToken]);
+  }, [scriptLoaded]);
 
   const handleMockLogin = async (e: React.FormEvent) => {
     e.preventDefault();

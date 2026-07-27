@@ -18,4 +18,31 @@ export class WorkspaceService implements IWorkspaceService {
             },
         });
     }
+
+    async getAll(ownerId: string): Promise<Workspace[]> {
+        return prisma.workspace.findMany({
+            where: {
+                ownerId: ownerId
+            }
+        })
+    }
+    async getById(ownerId: string, id: string): Promise<Workspace | null> {
+        return prisma.workspace.findFirst({
+            where: {
+                id: id, ownerId: ownerId
+            },
+            include: {
+                dataSources: {
+                    orderBy: {
+                        createdAt: "desc"
+                    }
+                },
+                jobs: {
+                    orderBy: {
+                        createdAt: "desc"
+                    }
+                }
+            }
+        }) as any;
+    }
 }

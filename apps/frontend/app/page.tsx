@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { useAuth } from "./context/AuthContext";
 import GoogleLoginButton from "./components/GoogleLoginButton";
+import Header from "./components/Header";
 
 export default function Home() {
   const { user, token, loading, logout } = useAuth();
@@ -27,44 +29,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:bg-amber-500/30 selection:text-amber-200">
-      {/* Header */}
-      <header className="border-b border-zinc-900 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-50 transition-all">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-600 to-yellow-500 flex items-center justify-center shadow-lg shadow-amber-600/20">
-              <span className="font-bold text-zinc-950 text-lg">R</span>
-            </div>
-            <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">
-              Raground
-            </span>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full border border-amber-500/20 bg-amber-500/10 text-amber-400">
-              v1.0
-            </span>
-          </div>
-
-          <div className="flex items-center gap-4">
-            {user ? (
-              <div className="flex items-center gap-4">
-                <div className="hidden sm:flex flex-col text-right">
-                  <span className="text-xs text-zinc-400">Signed in as</span>
-                  <span className="text-sm font-medium text-zinc-200">{user.email}</span>
-                </div>
-                <button
-                  onClick={logout}
-                  className="px-4 py-1.5 rounded-lg border border-zinc-800 hover:border-red-500/30 hover:bg-red-500/10 text-sm font-semibold text-zinc-300 hover:text-red-400 transition-all duration-200 cursor-pointer"
-                >
-                  Logout
-                </button>
-              </div>
-            ) : (
-              <span className="text-xs flex items-center gap-1.5 font-medium text-zinc-400 border border-zinc-800 px-2.5 py-1 rounded-full bg-zinc-900/30">
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                Disconnected
-              </span>
-            )}
-          </div>
-        </div>
-      </header>
+      <Header />
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col items-center justify-center p-6 md:p-12 relative overflow-hidden">
@@ -153,6 +118,24 @@ export default function Home() {
                   Active Session
                 </span>
               </div>
+            </div>
+
+            {/* Call to Action: Workspaces Directory */}
+            <div className="p-8 border border-amber-500/20 bg-gradient-to-br from-amber-950/10 to-zinc-950/40 backdrop-blur-md rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 shadow-xl shadow-amber-950/5">
+              <div className="flex flex-col gap-1.5 text-left">
+                <span className="text-xs font-semibold text-amber-500 uppercase tracking-wider">Active Workspace Environment</span>
+                <h3 className="text-xl font-bold text-white">Manage & Connect Workspaces</h3>
+                <p className="text-sm text-zinc-400 max-w-xl">Configure data sources, trigger indexing jobs, and query details dynamically using context-aware AI search.</p>
+              </div>
+              <Link
+                href="/workspaces"
+                className="px-5 py-3 bg-gradient-to-r from-amber-600 to-yellow-500 text-zinc-950 hover:from-amber-500 hover:to-yellow-400 font-bold text-sm rounded-xl transition-all duration-300 shadow-lg shadow-amber-600/20 hover:shadow-amber-500/40 flex items-center gap-2 group shrink-0 cursor-pointer"
+              >
+                Go to Workspaces
+                <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
             </div>
 
             {/* Profile fields and values */}

@@ -6,4 +6,8 @@ export interface IWorkspaceService {
         ownerId: string,
         data: CreateWorkspaceDto
     ): Promise<Workspace>;
+
+    getAll(ownerId: string): Promise<Workspace[]>;
+    getById(ownerId: string, id: string): Promise<Workspace | null>;
 }
+

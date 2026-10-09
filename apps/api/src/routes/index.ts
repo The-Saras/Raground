@@ -5,17 +5,23 @@ import workspaceRoutes from "../modules/workspace/workspace.routes"
 import dataSourceRoutes from "../modules/datasoruce/datasource.routes";
 import searchRoutes from "../modules/search/search.routes";
 import chatRoutes from "../modules/chat/chat.routes";
-import { authMiddleware } from "../middlewares/auth.middleware";
+import apiKeyRoutes from "../modules/api-keys/api-keys.routes";
+import v1Routes from "../modules/v1/v1.routes";
+import { unifiedAuthMiddleware } from "../middlewares/unified-auth.middleware";
 
 const router = Router();
 
 router.use("/health", healthRoutes);
 router.use("/auth", authRoutes);
 
-// Protect all workspaces and chat endpoints
-router.use("/workspaces", authMiddleware, workspaceRoutes);
-router.use("/workspaces", authMiddleware, dataSourceRoutes);
-router.use("/workspaces", authMiddleware, searchRoutes);
-router.use("/chat", authMiddleware, chatRoutes);
+// Protected routes (accepts either JWT user session or API Key)
+router.use("/workspaces", unifiedAuthMiddleware, workspaceRoutes);
+router.use("/workspaces", unifiedAuthMiddleware, dataSourceRoutes);
+router.use("/workspaces", unifiedAuthMiddleware, searchRoutes);
+router.use("/chat", unifiedAuthMiddleware, chatRoutes);
+router.use("/keys", unifiedAuthMiddleware, apiKeyRoutes);
+
+// Dedicated Versioned Developer REST API (/api/v1/...)
+router.use("/v1", v1Routes);
 
 export default router;

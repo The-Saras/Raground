@@ -14,7 +14,9 @@ export class SearchService implements ISearchService {
             SELECT
                 c.id AS "chunkId",
                 c.content,
-                1 - (e.vector <=> ${embeddingString}::vector) AS score
+                1 - (e.vector <=> ${embeddingString}::vector) AS score,
+                d.id AS "dataSourceId",
+                d.title AS "dataSourceTitle"
             FROM "Chunk" c
             INNER JOIN "Embedding" e
                 ON c.id = e."chunkId"
@@ -22,9 +24,9 @@ export class SearchService implements ISearchService {
                 ON c."dataSourceId" = d.id
             WHERE d."workspaceId" = ${workspaceId}
             ORDER BY e.vector <=> ${embeddingString}::vector
-            LIMIT ${limit ?? 5};;
+            LIMIT ${limit ?? 5}
         `;
         return results;
 
     }
-}
+}

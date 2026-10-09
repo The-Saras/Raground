@@ -1,14 +1,19 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { ApiKey, Workspace } from "@prisma/client";
 
 const JWT_SECRET = process.env.JWT_SECRET || "default-secret-key-change-this-in-production";
 
+export interface AuthenticatedUser {
+    id: string;
+    email: string;
+}
+
 export interface AuthenticatedRequest extends Request {
-    user?: {
-        id: string;
-        email: string;
-    };
-    workspace?: any;
+    user?: AuthenticatedUser;
+    apiKey?: ApiKey;
+    authType?: "jwt" | "api_key";
+    workspace?: Workspace;
 }
 
 export function authMiddleware(
@@ -35,6 +40,7 @@ export function authMiddleware(
             id: decoded.userId,
             email: decoded.email,
         };
+        req.authType = "jwt";
 
         next();
     } catch (error) {

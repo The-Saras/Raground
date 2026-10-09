@@ -33,7 +33,7 @@ export default function Header() {
                 href="/"
                 className={`text-sm font-medium transition-colors ${
                   pathname === "/"
-                    ? "text-amber-400"
+                    ? "text-amber-400 font-semibold"
                     : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
@@ -43,11 +43,31 @@ export default function Header() {
                 href="/workspaces"
                 className={`text-sm font-medium transition-colors ${
                   pathname?.startsWith("/workspaces")
-                    ? "text-amber-400"
+                    ? "text-amber-400 font-semibold"
                     : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
                 Workspaces
+              </Link>
+              <Link
+                href="/api-keys"
+                className={`text-sm font-medium transition-colors ${
+                  pathname === "/api-keys"
+                    ? "text-amber-400 font-semibold"
+                    : "text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                API Keys
+              </Link>
+              <Link
+                href="/docs"
+                className={`text-sm font-medium transition-colors ${
+                  pathname?.startsWith("/docs")
+                    ? "text-amber-400 font-semibold"
+                    : "text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                API Docs
               </Link>
             </nav>
           )}
@@ -57,7 +77,7 @@ export default function Header() {
         <div className="flex items-center gap-4">
           {user ? (
             <div className="flex items-center gap-4">
-              <nav className="flex md:hidden items-center gap-4 mr-2 border-r border-zinc-900 pr-4">
+              <nav className="flex md:hidden items-center gap-3 mr-2 border-r border-zinc-900 pr-3">
                 <Link
                   href="/"
                   className={`text-xs font-semibold uppercase tracking-wider ${
@@ -73,6 +93,22 @@ export default function Header() {
                   }`}
                 >
                   Workspaces
+                </Link>
+                <Link
+                  href="/api-keys"
+                  className={`text-xs font-semibold uppercase tracking-wider ${
+                    pathname === "/api-keys" ? "text-amber-400" : "text-zinc-400"
+                  }`}
+                >
+                  Keys
+                </Link>
+                <Link
+                  href="/docs"
+                  className={`text-xs font-semibold uppercase tracking-wider ${
+                    pathname?.startsWith("/docs") ? "text-amber-400" : "text-zinc-400"
+                  }`}
+                >
+                  Docs
                 </Link>
               </nav>
               <div className="hidden sm:flex flex-col text-right">

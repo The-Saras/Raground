@@ -9,7 +9,8 @@ export async function workspaceMiddleware(
     res: Response,
     next: NextFunction
 ) {
-    const { workspaceId } = req.params;
+    const rawWorkspaceId = req.params.workspaceId || req.params.id;
+    const workspaceId = Array.isArray(rawWorkspaceId) ? rawWorkspaceId[0] : rawWorkspaceId;
 
     if (!workspaceId || typeof workspaceId !== "string") {
         res.status(400).json({ error: "Workspace ID is required and must be a string" });
@@ -17,7 +18,15 @@ export async function workspaceMiddleware(
     }
 
     if (!req.user) {
-        res.status(401).json({ error: "Unauthorized" });
+        res.status(401).json({ error: "Unauthorized: User session or API key not authenticated" });
+        return;
+    }
+
+    // If request was authenticated via API key with specific workspace scope, check restriction
+    if (req.apiKey && req.apiKey.workspaceId && req.apiKey.workspaceId !== workspaceId) {
+        res.status(403).json({
+            error: `Forbidden: This API key is restricted to workspace '${req.apiKey.workspaceId}' and cannot access workspace '${workspaceId}'`,
+        });
         return;
     }
 
@@ -27,7 +36,7 @@ export async function workspaceMiddleware(
         });
 
         if (!workspace) {
-            res.status(404).json({ error: "Workspace not found" });
+            res.status(404).json({ error: `Workspace with ID '${workspaceId}' not found` });
             return;
         }
 

@@ -22,11 +22,18 @@ export class ChatController {
 
         const { query } = result.data;
 
-        const response = await chatService.chat(
-            workspaceId,
-            query
-        );
+        try {
+            const response = await chatService.chat(
+                workspaceId,
+                query
+            );
 
-        res.status(200).json(response);
+            res.status(200).json(response);
+        } catch (error: any) {
+            console.error("Chat controller error:", error);
+            res.status(500).json({
+                error: error.message || "Failed to process chat query",
+            });
+        }
     }
 }

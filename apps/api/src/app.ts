@@ -23,6 +23,15 @@ app.use(morgan("dev"));
 app.use(express.json());
 
 app.use("/api", routes);
+
+// Global JSON error handler to prevent raw HTML error responses
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error("Unhandled error:", err);
+    res.status(err.status || 500).json({
+        error: err.message || "Internal server error",
+    });
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`🚀 API running on http://localhost:${PORT}`);

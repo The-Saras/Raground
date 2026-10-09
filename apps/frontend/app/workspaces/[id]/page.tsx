@@ -56,11 +56,14 @@ export default function WorkspaceDetailPage() {
   const [activeTab, setActiveTab] = useState<"sources" | "chat">("sources");
 
   // Ingestion Form State
+  const [ingestMode, setIngestMode] = useState<"file" | "text">("file");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [docTitle, setDocTitle] = useState("");
   const [docContent, setDocContent] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Chat State
   const [chatQuery, setChatQuery] = useState("");
@@ -127,30 +130,65 @@ export default function WorkspaceDetailPage() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory, isChatting]);
 
-  // Handle uploading document
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedFile(file);
+      if (!docTitle) {
+        setDocTitle(file.name.replace(/\.[^/.]+$/, ""));
+      }
+    }
+  };
+
+  // Handle uploading document (supports file or raw text)
   const handleUploadDocument = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!docContent.trim()) {
-      setUploadError("Document content cannot be empty.");
-      return;
-    }
-
-    setIsUploading(true);
     setUploadError(null);
     setUploadSuccess(false);
 
+    if (ingestMode === "file") {
+      if (!selectedFile) {
+        setUploadError("Please select a .pdf or .txt file to upload.");
+        return;
+      }
+    } else {
+      if (!docContent.trim()) {
+        setUploadError("Document content cannot be empty.");
+        return;
+      }
+    }
+
+    setIsUploading(true);
+
     try {
-      const res = await fetch(`${API_URL}/workspaces/${id}/data`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          title: docTitle.trim() || undefined,
-          content: docContent.trim(),
-        }),
-      });
+      let res;
+      if (ingestMode === "file" && selectedFile) {
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+        if (docTitle.trim()) {
+          formData.append("title", docTitle.trim());
+        }
+
+        res = await fetch(`${API_URL}/workspaces/${id}/data`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        });
+      } else {
+        res = await fetch(`${API_URL}/workspaces/${id}/data`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            title: docTitle.trim() || undefined,
+            content: docContent.trim(),
+          }),
+        });
+      }
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -160,10 +198,15 @@ export default function WorkspaceDetailPage() {
       setUploadSuccess(true);
       setDocTitle("");
       setDocContent("");
+      setSelectedFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
       // Refresh details to show new datasource and triggered ingestion job
       await fetchDetails(false);
 
-      setTimeout(() => setUploadSuccess(false), 3000);
+      setTimeout(() => setUploadSuccess(false), 3500);
     } catch (err: any) {
       console.error("Upload document error:", err);
       setUploadError(err.message || "Could not upload document.");
@@ -195,7 +238,9 @@ export default function WorkspaceDetailPage() {
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({
+        error: `Server responded with status ${res.status} (${res.statusText || "Error"})`,
+      }));
 
       if (!res.ok) {
         throw new Error(data.error || "Chat failed");
@@ -350,11 +395,10 @@ export default function WorkspaceDetailPage() {
                   <div className="flex border-b border-zinc-900 gap-6">
                     <button
                       onClick={() => setActiveTab("sources")}
-                      className={`pb-3 text-sm font-semibold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
-                        activeTab === "sources"
+                      className={`pb-3 text-sm font-semibold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${activeTab === "sources"
                           ? "border-amber-500 text-amber-500"
                           : "border-transparent text-zinc-400 hover:text-zinc-200"
-                      }`}
+                        }`}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -363,11 +407,10 @@ export default function WorkspaceDetailPage() {
                     </button>
                     <button
                       onClick={() => setActiveTab("chat")}
-                      className={`pb-3 text-sm font-semibold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
-                        activeTab === "chat"
+                      className={`pb-3 text-sm font-semibold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${activeTab === "chat"
                           ? "border-amber-500 text-amber-500"
                           : "border-transparent text-zinc-400 hover:text-zinc-200"
-                      }`}
+                        }`}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -381,11 +424,51 @@ export default function WorkspaceDetailPage() {
                     <div className="flex flex-col gap-6">
                       {/* Document upload box */}
                       <div className="border border-zinc-900 bg-zinc-950/40 backdrop-blur-md p-6 rounded-2xl flex flex-col gap-4">
-                        <div className="flex flex-col">
-                          <h3 className="text-base font-bold text-white">Ingest Data Source</h3>
-                          <p className="text-xs text-zinc-500">
-                            Upload plaintext documents to build the workspace knowledge index.
-                          </p>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex flex-col">
+                            <h3 className="text-base font-bold text-white">Ingest Data Source</h3>
+                            <p className="text-xs text-zinc-500">
+                              Add knowledge to build the workspace vector index.
+                            </p>
+                          </div>
+
+                          {/* Mode Switcher */}
+                          <div className="flex bg-zinc-900/60 p-1 rounded-xl border border-zinc-800 text-xs">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIngestMode("file");
+                                setUploadError(null);
+                              }}
+                              className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                                ingestMode === "file"
+                                  ? "bg-amber-500 text-zinc-950 font-bold shadow-md shadow-amber-500/20"
+                                  : "text-zinc-400 hover:text-zinc-200"
+                              }`}
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                              </svg>
+                              File Upload (.pdf, .txt)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIngestMode("text");
+                                setUploadError(null);
+                              }}
+                              className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                                ingestMode === "text"
+                                  ? "bg-amber-500 text-zinc-950 font-bold shadow-md shadow-amber-500/20"
+                                  : "text-zinc-400 hover:text-zinc-200"
+                              }`}
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                              Raw Text
+                            </button>
+                          </div>
                         </div>
 
                         {uploadError && (
@@ -404,30 +487,115 @@ export default function WorkspaceDetailPage() {
                         )}
 
                         <form onSubmit={handleUploadDocument} className="flex flex-col gap-4">
-                          <div className="grid sm:grid-cols-3 gap-4 items-start">
-                            <div className="sm:col-span-3 flex flex-col gap-1.5">
-                              <input
-                                type="text"
-                                placeholder="Title (e.g. Employee Handbook v2026)"
-                                value={docTitle}
-                                onChange={(e) => setDocTitle(e.target.value)}
-                                className="w-full px-3 py-2 text-sm border border-zinc-900 rounded-xl bg-zinc-950 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-transparent transition-all"
-                              />
+                          {ingestMode === "file" ? (
+                            /* File Upload Mode */
+                            <div className="flex flex-col gap-3">
+                              {/* File picker drop area */}
+                              <div
+                                onClick={() => fileInputRef.current?.click()}
+                                className={`border-2 border-dashed rounded-2xl p-6 text-center flex flex-col items-center justify-center gap-2 transition-all cursor-pointer ${
+                                  selectedFile
+                                    ? "border-amber-500/50 bg-amber-500/5"
+                                    : "border-zinc-800 bg-zinc-900/30 hover:border-zinc-700 hover:bg-zinc-900/50"
+                                }`}
+                              >
+                                <input
+                                  ref={fileInputRef}
+                                  type="file"
+                                  accept=".pdf,.txt,.md,text/plain,application/pdf"
+                                  onChange={handleFileSelect}
+                                  className="hidden"
+                                />
+
+                                {selectedFile ? (
+                                  <div className="flex items-center justify-between w-full max-w-md bg-zinc-900 border border-zinc-800 p-3 rounded-xl">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                      <div className="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center font-bold text-xs text-amber-400 uppercase">
+                                        {selectedFile.name.endsWith(".pdf") ? "PDF" : "TXT"}
+                                      </div>
+                                      <div className="flex flex-col text-left min-w-0">
+                                        <span className="text-xs font-semibold text-white truncate max-w-[200px] sm:max-w-xs">
+                                          {selectedFile.name}
+                                        </span>
+                                        <span className="text-[10px] text-zinc-500">
+                                          {(selectedFile.size / 1024).toFixed(1)} KB
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedFile(null);
+                                        if (fileInputRef.current) fileInputRef.current.value = "";
+                                      }}
+                                      className="text-zinc-500 hover:text-red-400 p-1"
+                                      title="Remove file"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                      </svg>
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400">
+                                      <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                      </svg>
+                                    </div>
+                                    <div className="flex flex-col gap-0.5">
+                                      <span className="text-xs font-semibold text-zinc-200">
+                                        Click or drag file here to upload
+                                      </span>
+                                      <span className="text-[11px] text-zinc-500">
+                                        Supports PDF (.pdf) and Plain Text (.txt, .md) up to 25MB
+                                      </span>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+
+                              {/* Title Input */}
+                              <div className="flex flex-col gap-1.5">
+                                <label className="text-[11px] font-semibold text-zinc-400">Document Title (Optional)</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Employee Handbook 2026"
+                                  value={docTitle}
+                                  onChange={(e) => setDocTitle(e.target.value)}
+                                  className="w-full px-3 py-2 text-xs border border-zinc-900 rounded-xl bg-zinc-950 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                />
+                              </div>
                             </div>
-                            <div className="sm:col-span-3 flex flex-col gap-1.5">
-                              <textarea
-                                required
-                                placeholder="Paste raw plaintext document content here for embeddings..."
-                                value={docContent}
-                                onChange={(e) => setDocContent(e.target.value)}
-                                rows={5}
-                                className="w-full px-3 py-2 text-sm border border-zinc-900 rounded-xl bg-zinc-950 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-transparent transition-all resize-none"
-                              />
+                          ) : (
+                            /* Raw Text Mode */
+                            <div className="grid sm:grid-cols-3 gap-4 items-start">
+                              <div className="sm:col-span-3 flex flex-col gap-1.5">
+                                <input
+                                  type="text"
+                                  placeholder="Title (e.g. Employee Handbook v2026)"
+                                  value={docTitle}
+                                  onChange={(e) => setDocTitle(e.target.value)}
+                                  className="w-full px-3 py-2 text-sm border border-zinc-900 rounded-xl bg-zinc-950 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-transparent transition-all"
+                                />
+                              </div>
+                              <div className="sm:col-span-3 flex flex-col gap-1.5">
+                                <textarea
+                                  required={ingestMode === "text"}
+                                  placeholder="Paste raw plaintext document content here for embeddings..."
+                                  value={docContent}
+                                  onChange={(e) => setDocContent(e.target.value)}
+                                  rows={5}
+                                  className="w-full px-3 py-2 text-sm border border-zinc-900 rounded-xl bg-zinc-950 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-transparent transition-all resize-none"
+                                />
+                              </div>
                             </div>
-                          </div>
+                          )}
+
                           <button
                             type="submit"
-                            disabled={isUploading}
+                            disabled={isUploading || (ingestMode === "file" && !selectedFile) || (ingestMode === "text" && !docContent.trim())}
                             className="px-5 py-2.5 bg-gradient-to-r from-amber-600 to-yellow-500 text-zinc-950 hover:from-amber-500 hover:to-yellow-400 font-bold text-sm rounded-xl transition-all duration-300 shadow-md shadow-amber-600/10 self-end flex items-center gap-2 cursor-pointer disabled:opacity-50"
                           >
                             {isUploading ? (
@@ -436,7 +604,7 @@ export default function WorkspaceDetailPage() {
                                 Ingesting...
                               </>
                             ) : (
-                              "Upload & Index"
+                              ingestMode === "file" ? "Upload & Index File" : "Upload & Index Text"
                             )}
                           </button>
                         </form>
@@ -487,13 +655,12 @@ export default function WorkspaceDetailPage() {
                                     {/* Job Status Indicator */}
                                     {matchedJob ? (
                                       <span
-                                        className={`inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider shrink-0 ${
-                                          matchedJob.status === "COMPLETED"
+                                        className={`inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider shrink-0 ${matchedJob.status === "COMPLETED"
                                             ? "border-green-500/20 bg-green-500/5 text-green-400"
                                             : matchedJob.status === "FAILED"
-                                            ? "border-red-500/20 bg-red-500/5 text-red-400"
-                                            : "border-yellow-500/20 bg-yellow-500/5 text-yellow-400 animate-pulse"
-                                        }`}
+                                              ? "border-red-500/20 bg-red-500/5 text-red-400"
+                                              : "border-yellow-500/20 bg-yellow-500/5 text-yellow-400 animate-pulse"
+                                          }`}
                                       >
                                         {matchedJob.status === "COMPLETED" && (
                                           <span className="w-1 h-1 rounded-full bg-green-500"></span>
@@ -503,13 +670,13 @@ export default function WorkspaceDetailPage() {
                                         )}
                                         {(matchedJob.status === "QUEUED" ||
                                           matchedJob.status === "PROCESSING") && (
-                                          <span className="w-1 h-1 rounded-full bg-yellow-500"></span>
-                                        )}
+                                            <span className="w-1 h-1 rounded-full bg-yellow-500"></span>
+                                          )}
                                         {matchedJob.status === "PROCESSING"
                                           ? "Indexing..."
                                           : matchedJob.status === "QUEUED"
-                                          ? "Queued"
-                                          : matchedJob.status.toLowerCase()}
+                                            ? "Queued"
+                                            : matchedJob.status.toLowerCase()}
                                       </span>
                                     ) : (
                                       <span className="text-[9px] text-zinc-600">No Job Info</span>
@@ -566,19 +733,17 @@ export default function WorkspaceDetailPage() {
                           chatHistory.map((msg, i) => (
                             <div
                               key={i}
-                              className={`flex flex-col gap-1.5 max-w-[85%] ${
-                                msg.role === "user" ? "self-end items-end" : "self-start items-start"
-                              }`}
+                              className={`flex flex-col gap-1.5 max-w-[85%] ${msg.role === "user" ? "self-end items-end" : "self-start items-start"
+                                }`}
                             >
                               <span className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider">
                                 {msg.role === "user" ? "You" : "Raground Agent"}
                               </span>
                               <div
-                                className={`rounded-2xl p-4 text-sm leading-relaxed border ${
-                                  msg.role === "user"
+                                className={`rounded-2xl p-4 text-sm leading-relaxed border ${msg.role === "user"
                                     ? "bg-amber-600/10 border-amber-500/25 text-amber-200"
                                     : "bg-zinc-900/60 border-zinc-900 text-zinc-300"
-                                }`}
+                                  }`}
                               >
                                 {msg.text}
                               </div>
@@ -731,13 +896,12 @@ export default function WorkspaceDetailPage() {
                                 JOB-{job.id.substring(0, 8)}
                               </span>
                               <span
-                                className={`text-[9px] font-bold uppercase ${
-                                  job.status === "COMPLETED"
+                                className={`text-[9px] font-bold uppercase ${job.status === "COMPLETED"
                                     ? "text-green-400"
                                     : job.status === "FAILED"
-                                    ? "text-red-400"
-                                    : "text-amber-400"
-                                }`}
+                                      ? "text-red-400"
+                                      : "text-amber-400"
+                                  }`}
                               >
                                 {job.status}
                               </span>
